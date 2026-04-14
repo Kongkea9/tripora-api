@@ -1,4 +1,7 @@
 package tripora.api.dto;
 
-public record TourResponse() {
+
+public record TourResponse(
+
+) {
 }

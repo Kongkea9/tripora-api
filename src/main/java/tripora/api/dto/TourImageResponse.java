@@ -1,4 +1,13 @@
 package tripora.api.dto;
 
-public record TourImageResponse() {
+
+import lombok.Builder;
+
+@Builder
+public record TourImageResponse(
+
+        String imgUrl,
+        Integer sortOrder,
+        Integer tourId
+) {
 }

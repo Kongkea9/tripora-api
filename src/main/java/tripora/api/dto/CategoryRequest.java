@@ -4,29 +4,23 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-import java.time.LocalDate;
 
 public record CategoryRequest(
 
-        @NotBlank
-        @Size(max = 255)
+        @NotBlank(message = "Name is required")
+        @Size(max = 255, message = "Name must not exceed 255 characters")
         String name,
 
-        @NotBlank
+        @NotBlank(message = "Slug is required")
         @Size(max = 255)
         String slug,
 
-        @NotBlank
+        @NotBlank(message = "Type is required")
         @Size(max = 255)
         String type,
 
-        @NotNull
-        Boolean isActive,
+        @NotNull(message = "isActive is required")
+        Boolean isActive
 
-        @NotNull
-        LocalDate createdAt,
-
-        @NotNull
-        LocalDate updatedAt
 ) {
 }

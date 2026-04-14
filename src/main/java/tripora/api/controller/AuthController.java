@@ -12,16 +12,16 @@ import tripora.api.dto.AuthResponse;
 import tripora.api.dto.LoginRequest;
 import tripora.api.dto.RegisterRequest;
 import tripora.api.dto.UpdateProfileRequest;
-import tripora.api.service.auth.AuthService;
+import tripora.api.service.auth.AuthServiceImpl;
 
 @RestController
 @RequestMapping("/v1/api/auth")
 @Slf4j
 public class AuthController {
 
-    private final AuthService authService;
+    private final AuthServiceImpl authService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthServiceImpl authService) {
         this.authService = authService;
     }
 

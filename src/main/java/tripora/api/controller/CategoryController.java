@@ -1,14 +1,13 @@
 package tripora.api.controller;
 
-
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import tripora.api.dto.CategoryRequest;
 import tripora.api.dto.CategoryResponse;
 import tripora.api.dto.UpdateCategoryRequest;
-import tripora.api.repository.CategoryRepository;
 import tripora.api.service.category.CategoryServiceImpl;
 
 @RestController
@@ -54,13 +53,12 @@ public class CategoryController {
 
 
     @DeleteMapping("/{slug}")
-    public void deleteBySlug(
+    public ResponseEntity<String> deleteBySlug(
             @PathVariable String slug
     ){
         categoryService.deleteBySlug(slug);
+        return ResponseEntity.ok("Category deleted successfully");
     }
-
-
 
 
 }

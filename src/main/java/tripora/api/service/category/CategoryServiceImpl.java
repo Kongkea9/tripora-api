@@ -3,13 +3,13 @@ package tripora.api.service.category;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 import tripora.api.domain.Category;
 import tripora.api.dto.CategoryRequest;
 import tripora.api.dto.CategoryResponse;
 import tripora.api.dto.UpdateCategoryRequest;
+import tripora.api.exception.ConflictException;
+import tripora.api.exception.ResourceNotFoundException;
 import tripora.api.mapper.CategoryMapper;
 import tripora.api.repository.CategoryRepository;
 
@@ -48,13 +48,17 @@ public class CategoryServiceImpl implements CategoryService{
     public CategoryResponse createCategory(CategoryRequest categoryRequest) {
 
 
+           if(categoryRepository.findCategoriesBySlug(categoryRequest.slug()).isPresent())
+               throw new ConflictException("Slug '" + categoryRequest.slug() + "' already exists");
+
+
            Category category = new Category();
            category.setName(categoryRequest.name());
            category.setSlug(categoryRequest.slug());
            category.setType(categoryRequest.type());
            category.setIsActive(categoryRequest.isActive());
-           category.setCreatedAt(categoryRequest.createdAt());
-           category.setUpdatedAt(categoryRequest.updatedAt());
+           category.setCreatedAt(LocalDate.now());
+           category.setUpdatedAt(LocalDate.now());
 
            categoryRepository.save(category);
 
@@ -65,10 +69,13 @@ public class CategoryServiceImpl implements CategoryService{
     public CategoryResponse updateCategoryBySlug(String slug, UpdateCategoryRequest updateCategoryRequest) {
 
         Category foundCategory = categoryRepository.findCategoriesBySlug(slug)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        String.format("Category with slug: %s not found", slug )
-                ));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Category with slug '" + slug + "' not found")
+                );
+
+
+        if(categoryRepository.findCategoriesBySlug(updateCategoryRequest.slug()).isPresent())
+            throw new ConflictException("Slug '" + updateCategoryRequest.slug() + "' already exists");
 
         if(updateCategoryRequest.name() != null){
             foundCategory.setName(updateCategoryRequest.name());
@@ -84,9 +91,9 @@ public class CategoryServiceImpl implements CategoryService{
             foundCategory.setIsActive(updateCategoryRequest.isActive());
         }
 
-        if(updateCategoryRequest.updatedAt() != null){
-            foundCategory.setUpdatedAt(updateCategoryRequest.updatedAt());
-        }
+
+        foundCategory.setUpdatedAt(LocalDate.now());
+
 
         Category updateCategory = categoryRepository.save(foundCategory);
 
@@ -100,10 +107,8 @@ public class CategoryServiceImpl implements CategoryService{
 
 
         Category foundCategory = categoryRepository.findCategoriesBySlug(slug)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        String.format("Category with slug: %s not found", slug )
-                ));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Category with slug '" + slug + "' not found"));
 
         return categoryMapper.mapFromCategoryEntityoCategoryResponse(foundCategory);
     }
@@ -112,10 +117,8 @@ public class CategoryServiceImpl implements CategoryService{
     public void deleteBySlug(String slug) {
 
         Category foundCategory = categoryRepository.findCategoriesBySlug(slug)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        String.format("Category with slug: %s not found", slug )
-                ));
+                .orElseThrow(() -> new ResourceNotFoundException("Category with slug '" + slug + "' not found")
+                );
 
         categoryRepository.delete(foundCategory);
 

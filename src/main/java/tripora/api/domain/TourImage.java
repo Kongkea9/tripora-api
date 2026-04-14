@@ -8,7 +8,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "tour_images")
+@Table(
+        name = "tour_images",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"tour_id", "sort_order"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -30,5 +32,6 @@ public class TourImage {
     @ManyToOne
     @JoinColumn(name = "tour_id")
     private Tour tour;
+
 
 }

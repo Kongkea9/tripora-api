@@ -10,6 +10,9 @@ import tripora.api.dto.AuthResponse;
 import tripora.api.dto.LoginRequest;
 import tripora.api.dto.RegisterRequest;
 import tripora.api.dto.UpdateProfileRequest;
+import tripora.api.exception.BadRequestException;
+import tripora.api.exception.ConflictException;
+import tripora.api.exception.ResourceNotFoundException;
 import tripora.api.repository.RoleRepository;
 import tripora.api.repository.UserRepository;
 
@@ -22,7 +25,7 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
-public class AuthService {
+public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -30,14 +33,10 @@ public class AuthService {
     private final JwtService jwtService;
 
 
+    @Override
     public AuthResponse register(RegisterRequest req) {
         if(userRepository.existsByEmail(req.email())) {
-            throw new RuntimeException("Email already exists");
-        }
-
-        Optional<User> existingUser = userRepository.findUserByEmail(req.email());
-        if(existingUser.isPresent()) {
-            throw new RuntimeException("Email already registered");
+            throw new ConflictException("Email already registered");
         }
 
         Role userRole = roleRepository.findByName("USER")
@@ -60,22 +59,28 @@ public class AuthService {
     }
 
 
+    @Override
     public AuthResponse login(LoginRequest req){
 
            User user = userRepository.findUserByEmail(req.email()).orElseThrow(
-                   () -> new RuntimeException("User not found"));
+                   () -> new ResourceNotFoundException("User not found"));
 
            if(!encoder.matches(req.password(), user.getPasswordHash()))
-               throw new RuntimeException("Invalid password");
+               throw new BadRequestException("Invalid password");
 
            return new AuthResponse(jwtService.generateToken(user));
 
     }
 
+    @Override
     public User getMe(String email){
-        return userRepository.findUserByEmail(email).orElseThrow();
+
+        return userRepository.findUserByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
+
+    @Override
     public User updateProfile(String email, UpdateProfileRequest req){
 
         User user = getMe(email);
@@ -86,8 +91,6 @@ public class AuthService {
             user.setEmail(req.email());
         if(req.avatarUrl() != null)
             user.setAvatarUrl(req.avatarUrl());
-
-
 
         return userRepository.save(user);
     }
