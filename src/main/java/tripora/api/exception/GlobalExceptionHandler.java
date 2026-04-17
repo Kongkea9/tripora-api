@@ -1,5 +1,6 @@
 package tripora.api.exception;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
@@ -14,9 +15,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
-    // DTO validation errors (@Valid)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleValidationErrors(MethodArgumentNotValidException ex) {
@@ -31,7 +32,6 @@ public class GlobalExceptionHandler {
 
     }
 
-    // Wrong JSON type / malformed body
     @ExceptionHandler(HttpMessageNotReadableException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleUnreadable(HttpMessageNotReadableException ex) {
@@ -66,10 +66,16 @@ public class GlobalExceptionHandler {
         return ErrorResponse.of(403, ex.getMessage());
     }
 
-    // Catch-all fallback
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleGeneric(Exception ex) {
-        return ErrorResponse.of(500, "An unexpected error occurred");
+
+        log.error("Unexpected server error:", ex);
+
+        return ErrorResponse.of(
+                500,
+                ex.getMessage() != null ? ex.getMessage() : "Unexpected error"
+        );
     }
 }

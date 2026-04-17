@@ -10,6 +10,7 @@ public class CategoryMapper {
 
     public CategoryResponse mapFromCategoryEntityoCategoryResponse(Category category){
         return new CategoryResponse(
+                category.getId(),
                 category.getName(),
                 category.getSlug(),
                 category.getType(),

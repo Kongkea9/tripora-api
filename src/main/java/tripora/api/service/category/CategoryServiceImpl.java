@@ -5,6 +5,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import tripora.api.domain.Category;
+import tripora.api.domain.Tour;
 import tripora.api.dto.CategoryRequest;
 import tripora.api.dto.CategoryResponse;
 import tripora.api.dto.UpdateCategoryRequest;
@@ -12,6 +13,7 @@ import tripora.api.exception.ConflictException;
 import tripora.api.exception.ResourceNotFoundException;
 import tripora.api.mapper.CategoryMapper;
 import tripora.api.repository.CategoryRepository;
+import tripora.api.repository.TourRepository;
 
 import java.time.LocalDate;
 
@@ -20,10 +22,12 @@ public class CategoryServiceImpl implements CategoryService{
 
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
+    private final TourRepository tourRepository;
 
-    public CategoryServiceImpl(CategoryRepository categoryRepository, CategoryMapper categoryMapper) {
+    public CategoryServiceImpl(CategoryRepository categoryRepository, CategoryMapper categoryMapper, TourRepository tourRepository) {
         this.categoryRepository = categoryRepository;
         this.categoryMapper = categoryMapper;
+        this.tourRepository = tourRepository;
     }
 
 
@@ -33,6 +37,7 @@ public class CategoryServiceImpl implements CategoryService{
         Pageable pageable = PageRequest.of(pageNum, pageSize);
         return categoryRepository.findAll(pageable)
                 .map(category -> CategoryResponse.builder()
+                        .id(category.getId())
                         .name(category.getName())
                         .slug(category.getSlug())
                         .type(category.getType())
@@ -113,14 +118,40 @@ public class CategoryServiceImpl implements CategoryService{
         return categoryMapper.mapFromCategoryEntityoCategoryResponse(foundCategory);
     }
 
-    @Override
-    public void deleteBySlug(String slug) {
+//    @Override
+//    public void deleteBySlug(String slug) {
+//
+//        Category foundCategory = categoryRepository.findCategoriesBySlug(slug)
+//                .orElseThrow(() -> new ResourceNotFoundException("Category with slug '" + slug + "' not found")
+//                );
+//
+////        categoryRepository.delete(foundCategory);
+//
+//        foundCategory.setIsActive(false);
+//        categoryRepository.save(foundCategory);
+//
+//    }
 
-        Category foundCategory = categoryRepository.findCategoriesBySlug(slug)
-                .orElseThrow(() -> new ResourceNotFoundException("Category with slug '" + slug + "' not found")
-                );
 
-        categoryRepository.delete(foundCategory);
 
+@Override
+public void deleteBySlug(String slug) {
+
+    Category foundCategory = categoryRepository.findCategoriesBySlug(slug)
+            .orElseThrow(() -> new ResourceNotFoundException(
+                    "Category with slug '" + slug + "' not found"
+            ));
+
+
+
+    if (tourRepository.existsByCategory_Id(foundCategory.getId())) {
+        throw new ConflictException("Cannot delete category. It is assigned to existing tours.");
     }
+
+    foundCategory.setIsActive(false);
+    categoryRepository.save(foundCategory);
+}
+
+
+
 }

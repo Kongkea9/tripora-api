@@ -2,37 +2,38 @@ package tripora.api.domain;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Null;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.awt.*;
+
 @Entity
-@Table(
-        name = "tour_images",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"tour_id", "sort_order"}))
+@Table(name = "itineraries")
 @Getter
 @Setter
 @NoArgsConstructor
-public class TourImage {
-
+public class Itinerary {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(length = 500, nullable = false)
-    private String imageUrl;
-
-
     @Column(nullable = false)
-    private Integer sortOrder;
+    private Integer dayNumber;
+
+    @Column(length = 255, nullable = false)
+    private String title;
+
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
     @ManyToOne
-    @JoinColumn(name = "tour_id")
+    @JoinColumn(name = "tour_id", nullable = false)
     @JsonIgnore
     private Tour tour;
-
 
 }

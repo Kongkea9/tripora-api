@@ -39,6 +39,4 @@ public class Category {
     private LocalDate updatedAt;
 
 
-
-
 }

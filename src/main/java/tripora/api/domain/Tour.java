@@ -7,7 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 
 @Entity
@@ -53,14 +54,27 @@ public class Tour {
     private Boolean isActive;
 
     @Column(nullable = false)
-    private LocalDate createAt;
+    private LocalDate createdAt;
 
      @ManyToOne
      @JoinColumn(name = "category_id")
      private Category category;
 
      @OneToMany(mappedBy = "tour")
-     private List<TourImage> tourImages;
+     @OrderBy("sortOrder ASC")
+     private Set<TourImage> tourImages = new HashSet<>();
+
+
+     @OneToMany(mappedBy = "tour")
+     @OrderBy("dayNumber ASC")
+     private Set<Itinerary> itineraries = new HashSet<>();
+
+    @OneToMany(mappedBy = "tour", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("minGuests ASC")
+    private Set<TransportOption> transportOptions = new HashSet<>();
+
+
+
 
 
 }

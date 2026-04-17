@@ -1,12 +1,8 @@
 package tripora.api.dto;
 
-import lombok.Builder;
-
 import java.time.LocalDate;
-import java.util.List;
 
-@Builder
-public record TourResponse(
+public record TourFlatResponse(
         Integer id,
         String title,
         String description,
@@ -19,8 +15,5 @@ public record TourResponse(
         String coverImage,
         Boolean isActive,
         LocalDate createdAt,
-        CategoryResponse category,
-        List<TourImageResponse> images,
-        List<ItineraryResponse> itineraries,
-        List<TransportOptionResponse> transportOptions
+        CategoryResponse category
 ) {}

@@ -58,6 +58,9 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"
                         ).permitAll()
 
+                        .requestMatchers(HttpMethod.POST,
+                                "/v1/api/files/upload"
+                        ).permitAll()
 
                         .requestMatchers(HttpMethod.PATCH,
                                 "/v1/api/admin/users/{email}/role"
@@ -76,17 +79,20 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST,
                                 "/v1/api/tours",
                                 "/v1/api/tours/{id}/images",
-                                "/v1/api/tours/{id}/itinerary",
+                                "/v1/api/tours/{id}/images/url",
+
+                                "/v1/api/tours/{id}/itineraries",
                                 "/v1/api/tours/{id}/transport-options"
                         ).hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT,
                                 "/v1/api/tours/{id}",
-                                "/v1/api/tours/{id}/itinerary/{dayId}",
+                                "/v1/api/tours/{id}/itineraries/{dayId}",
                                 "/v1/api/tours/{id}/transport-options/{optId}"
                         ).hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE,
                                 "/v1/api/tours/{id}",
                                 "/v1/api/tours/{id}/images/{imgId}",
+                                "/v1/api/tours/{id}/itineraries/{dayId}",
                                 "/v1/api/tours/{id}/transport-options/{optId}"
                         ).hasRole("ADMIN")
 
@@ -159,7 +165,6 @@ public class SecurityConfig {
                                 "/v1/api/wishlist/{tourId}"
                         ).hasRole("USER")
 
-                        // Deny everything else
                         .anyRequest().denyAll()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

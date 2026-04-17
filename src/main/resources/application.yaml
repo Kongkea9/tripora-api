@@ -18,3 +18,10 @@ server:
 
 jwt:
   secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+
+
+
+cloudinary:
+  cloud-name: dll4ymvus
+  api-key: 564313725918962
+  api-secret: NiEaAAntv3RTox9wIao_0VI4Waw

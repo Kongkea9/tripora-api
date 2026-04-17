@@ -6,7 +6,8 @@ import lombok.Builder;
 @Builder
 public record TourImageResponse(
 
-        String imgUrl,
+        Integer id,
+        String imageUrl,
         Integer sortOrder,
         Integer tourId
 ) {
