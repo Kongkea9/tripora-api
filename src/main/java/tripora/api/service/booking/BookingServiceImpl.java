@@ -28,6 +28,7 @@ public class BookingServiceImpl implements BookingService {
     private final GuideRepository guideRepository;
     private final TransportOptionRepository transportOptionRepository;
     private final UserRepository userRepository;
+    private final InvoiceRepository invoiceRepository;
 
     private final BookingMapper bookingMapper;
 
@@ -131,6 +132,40 @@ public class BookingServiceImpl implements BookingService {
                 .toList();
     }
 
+//    @Override
+//    public BookingResponse approve(Integer bookingId, Integer guideId) {
+//
+//        Booking booking = bookingRepository.findById(bookingId)
+//                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+//
+//        if (booking.getStatus() != BookingStatus.PENDING) {
+//            throw new ConflictException("Only pending bookings can be approved");
+//        }
+//
+//        Guide guide = guideRepository.findById(guideId)
+//                .orElseThrow(() -> new ResourceNotFoundException("Guide not found"));
+//
+//        if (!guide.getIsAvailable()) {
+//            throw new ConflictException("Guide is not available");
+//        }
+//
+//        boolean alreadyBooked = bookingRepository
+//                .existsByGuideIdAndTravelDate(guideId, booking.getTravelDate());
+//
+//        if (alreadyBooked) {
+//            throw new ConflictException("Guide already assigned on this date");
+//        }
+//
+//        booking.setGuide(guide);
+//        booking.setStatus(BookingStatus.APPROVED);
+//        booking.setApprovedAt(LocalDateTime.now());
+//
+//        return bookingMapper.toResponse(bookingRepository.save(booking));
+//    }
+
+
+
+
     @Override
     public BookingResponse approve(Integer bookingId, Integer guideId) {
 
@@ -159,7 +194,30 @@ public class BookingServiceImpl implements BookingService {
         booking.setStatus(BookingStatus.APPROVED);
         booking.setApprovedAt(LocalDateTime.now());
 
-        return bookingMapper.toResponse(bookingRepository.save(booking));
+        Booking savedBooking = bookingRepository.save(booking);
+
+        // CREATE INVOICE
+        if (invoiceRepository.findByBookingId(bookingId).isEmpty()) {
+
+            Invoice invoice = new Invoice();
+            invoice.setBooking(savedBooking);
+
+            invoice.setInvoiceNumber("INV-" + System.currentTimeMillis()); // ✅ FIX
+
+            BigDecimal subtotal = savedBooking.getTotalPrice();
+            BigDecimal tax = subtotal.multiply(BigDecimal.valueOf(0.10));
+            BigDecimal total = subtotal.add(tax);
+
+            invoice.setSubtotal(subtotal);
+            invoice.setTaxAmount(tax);
+            invoice.setGrandTotal(total);
+            invoice.setStatus("UNPAID");
+            invoice.setIssuedAt(LocalDateTime.now());
+
+            invoiceRepository.save(invoice);
+        }
+
+        return bookingMapper.toResponse(savedBooking);
     }
 
     @Override
