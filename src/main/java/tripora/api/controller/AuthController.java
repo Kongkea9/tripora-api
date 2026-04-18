@@ -12,6 +12,7 @@ import tripora.api.dto.AuthResponse;
 import tripora.api.dto.LoginRequest;
 import tripora.api.dto.RegisterRequest;
 import tripora.api.dto.UpdateProfileRequest;
+import tripora.api.security.UserPrincipal;
 import tripora.api.service.auth.AuthServiceImpl;
 
 @RestController
@@ -53,12 +54,17 @@ public class AuthController {
         }
     }
 
+
     @GetMapping("/me")
     public ResponseEntity<?> me(Authentication auth) {
+
         try {
-            String email = auth.getName();
-            User user = authService.getMe(email);
+            UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+
+            User user = authService.getMe(principal.email());
+
             return ResponseEntity.ok(user);
+
         } catch (Exception e) {
             log.error("Failed to get current user: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

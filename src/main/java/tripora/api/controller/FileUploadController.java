@@ -30,7 +30,7 @@ public class FileUploadController {
             return ResponseEntity.ok(Map.of("url", url));
 
         } catch (Exception e) {
-            log.error("Cloudinary upload failed", e); // 👈 IMPORTANT
+            log.error("Cloudinary upload failed", e);
 
             return ResponseEntity.status(500).body(Map.of(
                     "error", e.getMessage()

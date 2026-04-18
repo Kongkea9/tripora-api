@@ -3,6 +3,7 @@ package tripora.api.dto;
 import jakarta.validation.constraints.*;
 
 
+
 public record TourRequest(
 
         @NotBlank(message = "Title is required")
@@ -39,6 +40,7 @@ public record TourRequest(
 
         @NotNull(message = "isActive is required")
         Boolean isActive,
+
 
         @NotNull(message = "Category ID is required")
         Integer categoryId

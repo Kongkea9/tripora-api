@@ -1,7 +1,7 @@
+
+
 package tripora.api.service.tour;
 
-
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -10,30 +10,28 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import tripora.api.domain.*;
 import tripora.api.dto.*;
+import tripora.api.exception.BadRequestException;
 import tripora.api.exception.ConflictException;
 import tripora.api.exception.ResourceNotFoundException;
-import tripora.api.mapper.CategoryMapper;
 import tripora.api.mapper.TourMapper;
 import tripora.api.repository.*;
 import tripora.api.service.cloudinary.CloudinaryService;
 
+
 import java.time.LocalDate;
 import java.util.List;
 
-
 @Service
-@Slf4j
+@Transactional
 public class TourServiceImpl implements TourService {
 
     private final TourRepository tourRepository;
     private final CategoryRepository categoryRepository;
     private final TourImageRepository tourImageRepository;
     private final ItineraryRepository itineraryRepository;
+    private final TransportOptionRepository transportOptionRepository;
     private final TourMapper tourMapper;
     private final CloudinaryService cloudinaryService;
-    private final CategoryMapper categoryMapper;
-    private final TransportOptionRepository transportOptionRepository;
-
 
     public TourServiceImpl(
             TourRepository tourRepository,
@@ -42,54 +40,50 @@ public class TourServiceImpl implements TourService {
             ItineraryRepository itineraryRepository,
             TourMapper tourMapper,
             CloudinaryService cloudinaryService,
-            CategoryMapper categoryMapper, TransportOptionRepository transportOptionRepository) {
+            TransportOptionRepository transportOptionRepository
+    ) {
         this.tourRepository = tourRepository;
         this.categoryRepository = categoryRepository;
         this.tourImageRepository = tourImageRepository;
         this.itineraryRepository = itineraryRepository;
         this.tourMapper = tourMapper;
         this.cloudinaryService = cloudinaryService;
-        this.categoryMapper = categoryMapper;
         this.transportOptionRepository = transportOptionRepository;
     }
 
+    //TOUR
 
     @Override
+    @Transactional(readOnly = true)
     public Page<TourFlatResponse> getAll(int pageNum, int pageSize,
                                          String categorySlug,
                                          String province,
                                          String city) {
 
         Pageable pageable = PageRequest.of(pageNum, pageSize);
-
-        return tourRepository.findAllWithFilters(
-                categorySlug,
-                province,
-                city,
-                pageable
-        );
+        return tourRepository.findAllWithFilters(categorySlug, province, city, pageable);
     }
-
 
     @Override
     @Transactional(readOnly = true)
     public TourResponse getById(Integer id) {
-
-        Tour tour = tourRepository.findWithDetailsById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Tour not found"));
-
+        Tour tour = getTourOrThrow(id);
         return tourMapper.mapToTourResponse(tour);
     }
-
 
     @Override
     public TourResponse createTour(TourRequest req) {
 
-        Category category = categoryRepository.findById(req.categoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+        validateDuration(req.durationDay(), req.durationNight());
+
+        Category category = getCategory(req.categoryId());
+
+        if (tourRepository.existsDuplicateTitle(req.title(), req.city())) {
+            throw new ConflictException("Duplicate tour title in city");
+        }
 
         Tour tour = new Tour();
-        tour.setTitle(req.title());
+        tour.setTitle(req.title().trim());
         tour.setDescription(req.description());
         tour.setDurationDay(req.durationDay());
         tour.setDurationNight(req.durationNight());
@@ -97,7 +91,6 @@ public class TourServiceImpl implements TourService {
         tour.setWhatExcluded(req.whatExcluded());
         tour.setProvince(req.province());
         tour.setCity(req.city());
-
         tour.setCoverImage(req.coverImage());
         tour.setIsActive(req.isActive());
         tour.setCategory(category);
@@ -105,328 +98,334 @@ public class TourServiceImpl implements TourService {
 
         return tourMapper.mapToTourResponse(tourRepository.save(tour));
     }
+
     @Override
     public TourResponse updateTour(Integer id, UpdateTourRequest req) {
 
-        Tour tour = findTourById(id);
+        Tour tour = getTourOrThrow(id);
+        if (tourRepository.existsDuplicateTitle(req.title(), req.city())) {
+            throw new ConflictException("Duplicate tour title in city");
+        }
 
-        if (req.title() != null) tour.setTitle(req.title());
-        if (req.description() != null) tour.setDescription(req.description());
-        if (req.durationDay() != null) tour.setDurationDay(req.durationDay());
-        if (req.durationNight() != null) tour.setDurationNight(req.durationNight());
-        if (req.whatsIncluded() != null) tour.setWhatsIncluded(req.whatsIncluded());
-        if (req.whatExcluded() != null) tour.setWhatExcluded(req.whatExcluded());
-        if (req.province() != null) tour.setProvince(req.province());
+        if (!tour.getIsActive())
+            throw new ConflictException("Tour inactive");
+
+        if (req.title() != null)
+            tour.setTitle(req.title().trim());
+
+        if (req.description() != null)
+            tour.setDescription(req.description());
+
+        if (req.durationDay() != null || req.durationNight() != null) {
+
+            int day = req.durationDay() != null ? req.durationDay() : tour.getDurationDay();
+            int night = req.durationNight() != null ? req.durationNight() : tour.getDurationNight();
+
+            validateDuration(day, night);
+
+            long maxDay = itineraryRepository.findMaxDayNumberByTourId(id).orElse(0L);
+
+            if (day < maxDay)
+                throw new ConflictException("Duration too small for itinerary");
+
+            tour.setDurationDay(day);
+            tour.setDurationNight(night);
+        }
+
         if (req.city() != null) tour.setCity(req.city());
+        if (req.province() != null) tour.setProvince(req.province());
         if (req.coverImage() != null) tour.setCoverImage(req.coverImage());
         if (req.isActive() != null) tour.setIsActive(req.isActive());
 
-        if (req.categoryId() != null) {
-            Category category = categoryRepository.findById(req.categoryId())
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "Category not found"));
-            tour.setCategory(category);
-        }
+        if (req.categoryId() != null)
+            tour.setCategory(getCategory(req.categoryId()));
 
         return tourMapper.mapToTourResponse(tourRepository.save(tour));
     }
 
     @Override
     public void deleteTour(Integer id) {
-        Tour tour = findTourById(id);
+        Tour tour = getTourOrThrow(id);
+
+        if (!tour.getIsActive())
+            throw new ConflictException("Already inactive");
+
         tour.setIsActive(false);
         tourRepository.save(tour);
     }
+
+
+
+    // IMAGES
+
     @Override
     public TourImageResponse addImage(Integer tourId, TourImageRequest req) {
 
-        Tour tour = findTourById(tourId);
+        Tour tour = getActiveTour(tourId);
 
-        if (tourImageRepository.existsByTourIdAndSortOrder(tourId, req.sortOrder())) {
-            throw new ConflictException("Sort order already exists");
-        }
-
+        if (tourImageRepository.existsByTourIdAndSortOrder(tourId, req.sortOrder()))
+            throw new ConflictException("Sort order exists");
 
         TourImage image = new TourImage();
         image.setTour(tour);
-        image.setImageUrl(req.imageUrl());
+        image.setImageUrl(req.imageUrl().trim());
         image.setSortOrder(req.sortOrder());
 
-        TourImage saved = tourImageRepository.save(image);
-
-        return TourImageResponse.builder()
-                .id(saved.getId())
-                .imageUrl(saved.getImageUrl())
-                .sortOrder(saved.getSortOrder())
-                .tourId(tourId)
-                .build();
+        return mapImage(tourImageRepository.save(image), tourId);
     }
 
-
-    // IMAGES (CLOUDINARY)
-
     @Override
-    public TourImageResponse uploadImage(Integer tourId,
-                                         MultipartFile file,
-                                         Integer sortOrder) {
+    public TourImageResponse uploadImage(Integer tourId, MultipartFile file, Integer sortOrder) {
 
-        Tour tour = findTourById(tourId);
+        Tour tour = getActiveTour(tourId);
 
-        if (!tour.getIsActive()) {
-            throw new ConflictException("Cannot upload image in inactive tour");
-        }
+        if (tourImageRepository.existsByTourIdAndSortOrder(tourId, sortOrder))
+            throw new ConflictException("Sort order exists");
 
-        if (tourImageRepository.existsByTourIdAndSortOrder(tourId, sortOrder)) {
-            throw new ConflictException("Sort order already exists");
-        }
-
-        String imageUrl = cloudinaryService.uploadFile(file);
+        String url = cloudinaryService.uploadFile(file);
 
         TourImage image = new TourImage();
         image.setTour(tour);
-        image.setImageUrl(imageUrl);
+        image.setImageUrl(url);
         image.setSortOrder(sortOrder);
 
-        TourImage saved = tourImageRepository.save(image);
-
-        return TourImageResponse.builder()
-                .id(saved.getId())
-                .imageUrl(saved.getImageUrl())
-                .sortOrder(saved.getSortOrder())
-                .tourId(tourId)
-                .build();
+        return mapImage(tourImageRepository.save(image), tourId);
     }
 
     @Override
     public void removeImage(Integer tourId, Integer imageId) {
 
-        Tour tour = findTourById(tourId);
-        if (!tour.getIsActive()) {
-            throw new ConflictException("Cannot remove image in inactive tour");
-        }
+        getActiveTour(tourId);
 
         TourImage image = tourImageRepository.findByIdAndTourId(imageId, tourId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Image not found"));
-
+                .orElseThrow(() -> new ResourceNotFoundException("Image not found"));
 
         cloudinaryService.deleteFile(image.getImageUrl());
-
-
         tourImageRepository.delete(image);
     }
 
     @Override
+    public void reorderImages(Integer tourId, TourImageReorderBatchRequest req) {
+
+        getActiveTour(tourId);
+
+        List<TourImage> images = req.items().stream()
+                .map(item -> {
+                    TourImage img = tourImageRepository
+                            .findByIdAndTourId(item.imageId(), tourId)
+                            .orElseThrow(() -> new ResourceNotFoundException("Image not found"));
+
+                    img.setSortOrder(item.sortOrder());
+                    return img;
+                })
+                .toList();
+
+        tourImageRepository.saveAll(images);
+    }
+
+
+    @Override
+    @Transactional
     public TourResponse updateCoverImage(Integer id, MultipartFile file) {
 
-        Tour tour = findTourById(id);
-        if (!tour.getIsActive()) {
-            throw new ConflictException("Cannot update cover image in inactive tour");
-        }
+        Tour tour = getActiveTour(id);
 
-        if (tour.getCoverImage() != null) {
-            cloudinaryService.deleteFile(tour.getCoverImage());
-        }
+        if (file == null || file.isEmpty())
+            throw new BadRequestException("File is required");
+
+        String oldUrl = tour.getCoverImage();
 
         String newUrl = cloudinaryService.uploadFile(file);
         tour.setCoverImage(newUrl);
 
-        return tourMapper.mapToTourResponse(tourRepository.save(tour));
+        Tour saved = tourRepository.save(tour);
+
+        if (oldUrl != null && !oldUrl.isBlank()) {
+            cloudinaryService.deleteFile(oldUrl);
+        }
+
+        return tourMapper.mapToTourResponse(saved);
     }
-
-
     // ITINERARY
-
     @Override
     public ItineraryResponse addItineraryDay(Integer tourId, ItineraryRequest req) {
 
-        Tour tour = findTourById(tourId);
-        if (!tour.getIsActive()) {
-            throw new ConflictException("Cannot add itinerary day in inactive tour");
-        }
+        Tour tour = getActiveTour(tourId);
 
+        if (req.dayNumber() > tour.getDurationDay())
+            throw new ConflictException("Day exceeds duration");
 
-        if (req.dayNumber() > tour.getDurationDay()) {
-            throw new ConflictException(
-                    "Day number cannot exceed tour duration (" + tour.getDurationDay() + ")"
-            );
-        }
-
-        if (itineraryRepository.existsByTourIdAndDayNumber(tourId, req.dayNumber())) {
+        if (itineraryRepository.existsByTourIdAndDayNumber(tourId, req.dayNumber()))
             throw new ConflictException("Day already exists");
-        }
 
+        Itinerary it = new Itinerary();
+        it.setTour(tour);
+        it.setDayNumber(req.dayNumber());
+        it.setTitle(req.title().trim());
+        it.setDescription(req.description());
 
-        Itinerary itinerary = new Itinerary();
-        itinerary.setTour(tour);
-        itinerary.setDayNumber(req.dayNumber());
-        itinerary.setTitle(req.title());
-        itinerary.setDescription(req.description());
-
-        Itinerary saved = itineraryRepository.save(itinerary);
-
-        return ItineraryResponse.builder()
-                .id(saved.getId())
-                .dayNumber(saved.getDayNumber())
-                .title(saved.getTitle())
-                .description(saved.getDescription())
-                .build();
+        return mapItinerary(itineraryRepository.save(it));
     }
 
     @Override
-    public void reorderImages(Integer tourId, TourImageReorderBatchRequest request) {
+    public ItineraryResponse updateItineraryDay(Integer tourId, Integer dayId, UpdateItineraryRequest req) {
 
-        Tour tour = findTourById(tourId);
-        if (!tour.getIsActive()) {
-            throw new ConflictException("Cannot reorder images in inactive tour");
-        }
+        Tour tour = getActiveTour(tourId);
+        if (req.dayNumber() > tour.getDurationDay())
+            throw new ConflictException("Day exceeds duration");
 
-        List<TourImage> updated = request.items().stream()
-                .map(item -> {
-                    TourImage image = (TourImage) tourImageRepository.findByIdAndTourId(item.imageId(), tourId)
-                            .orElseThrow(() -> new ResourceNotFoundException("Image not found"));
+        if (itineraryRepository.existsByTourIdAndDayNumber(tourId, req.dayNumber()))
+            throw new ConflictException("Day already exists");
 
-                    image.setSortOrder(item.sortOrder());
-                    return image;
-                })
-                .toList();
-
-        tourImageRepository.saveAll(updated);
-    }
-
-
-    @Override
-    public ItineraryResponse updateItineraryDay(Integer tourId,
-                                                Integer dayId,
-                                                UpdateItineraryRequest req) {
-
-        Tour tour = findTourById(tourId);
-        if (!tour.getIsActive()) {
-            throw new ConflictException("Cannot update itinerary day in inactive tour");
-        }
-
-        Itinerary itinerary = itineraryRepository.findByIdAndTourId(dayId, tourId)
+        Itinerary it = itineraryRepository.findByIdAndTourId(dayId, tourId)
                 .orElseThrow(() -> new ResourceNotFoundException("Not found"));
 
         if (req.dayNumber() != null &&
-                !req.dayNumber().equals(itinerary.getDayNumber()) &&
                 itineraryRepository.existsByTourIdAndDayNumber(tourId, req.dayNumber())) {
-            throw new ConflictException("Another itinerary already exists for day " + req.dayNumber());
+            throw new ConflictException("Duplicate day");
         }
 
-        if (req.dayNumber() != null) itinerary.setDayNumber(req.dayNumber());
-        if (req.title() != null) itinerary.setTitle(req.title());
-        if (req.description() != null) itinerary.setDescription(req.description());
+        if (req.dayNumber() != null) it.setDayNumber(req.dayNumber());
+        if (req.title() != null) it.setTitle(req.title());
+        if (req.description() != null) it.setDescription(req.description());
 
-        Itinerary updated = itineraryRepository.save(itinerary);
-
-        return ItineraryResponse.builder()
-                .id(updated.getId())
-                .dayNumber(updated.getDayNumber())
-                .title(updated.getTitle())
-                .description(updated.getDescription())
-                .build();
+        return mapItinerary(itineraryRepository.save(it));
     }
-
 
     @Override
     public void removeItineraryDay(Integer tourId, Integer dayId) {
 
-        Tour tour = findTourById(tourId);
-        if (!tour.getIsActive()) {
-            throw new ConflictException("Cannot remove itinerary day in inactive tour");
-        }
+        getActiveTour(tourId);
 
-        Itinerary itinerary = itineraryRepository.findByIdAndTourId(dayId, tourId)
+        Itinerary it = itineraryRepository.findByIdAndTourId(dayId, tourId)
                 .orElseThrow(() -> new ResourceNotFoundException("Not found"));
 
-
-        itineraryRepository.delete(itinerary);
-
+        itineraryRepository.delete(it);
     }
 
-
-
+    // TRANSPORT
 
     @Override
     public TransportOptionResponse addTransportOption(Integer tourId, TransportOptionRequest req) {
 
-        Tour tour = findTourById(tourId);
-        if (!tour.getIsActive()) {
-            throw new ConflictException("Cannot add transport option in inactive tour");
+        Tour tour = getActiveTour(tourId);
+
+        if (req.minGuests() > req.maxGuests()) {
+            throw new BadRequestException("Min guests cannot be greater than max guests");
         }
 
 
-        TransportOption option = new TransportOption();
-        option.setTour(tour);
-        option.setVehicleType(req.vehicleType());
-        option.setMinGuests(req.minGuests());
-        option.setMaxGuests(req.maxGuests());
-        option.setGroupPrice(req.groupPrice());
-        option.setNote(req.note());
+        TransportOption opt = new TransportOption();
+        opt.setTour(tour);
+        opt.setVehicleType(req.vehicleType().trim());
+        opt.setMinGuests(req.minGuests());
+        opt.setMaxGuests(req.maxGuests());
+        opt.setGroupPrice(req.groupPrice());
+        opt.setNote(req.note());
 
-        TransportOption saved = transportOptionRepository.save(option);
-
-        return tourMapper.mapTransport(saved);
+        return tourMapper.mapTransport(transportOptionRepository.save(opt));
     }
 
+    @Override
+    public TransportOptionResponse updateTransportOption(Integer tourId, Integer optId, TransportOptionRequest req) {
+
+        getActiveTour(tourId);
+
+        TransportOption opt = transportOptionRepository.findByIdAndTourId(optId, tourId)
+                .orElseThrow(() -> new ResourceNotFoundException("Not found"));
+
+        opt.setVehicleType(req.vehicleType());
+        opt.setMinGuests(req.minGuests());
+        opt.setMaxGuests(req.maxGuests());
+        opt.setGroupPrice(req.groupPrice());
+        opt.setNote(req.note());
+
+        return tourMapper.mapTransport(transportOptionRepository.save(opt));
+    }
+
+    @Override
+    public void deleteTransportOption(Integer tourId, Integer optId) {
+
+        getActiveTour(tourId);
+
+        TransportOption opt = transportOptionRepository.findByIdAndTourId(optId, tourId)
+                .orElseThrow(() -> new ResourceNotFoundException("Not found"));
+
+        transportOptionRepository.delete(opt);
+    }
 
     @Override
     public List<TransportOptionResponse> getTransportOptions(Integer tourId) {
 
-        Tour tour = findTourById(tourId);
-        if (!tour.getIsActive()) {
-            throw new ConflictException("Cannot get get transport options inactive tour");
-        }
+        getActiveTour(tourId);
+
         return transportOptionRepository.findByTourId(tourId)
                 .stream()
                 .map(tourMapper::mapTransport)
                 .toList();
     }
 
+    // HELPERS
 
-    @Override
-    public TransportOptionResponse updateTransportOption(Integer tourId, Integer optId, TransportOptionRequest req) {
-
-        Tour tour = findTourById(tourId);
-        if (!tour.getIsActive()) {
-            throw new ConflictException("Cannot update transport option in inactive tour");
-        }
-
-        TransportOption option = transportOptionRepository
-                .findByIdAndTourId(optId, tourId)
-                .orElseThrow(() -> new ResourceNotFoundException("Transport not found"));
-
-        option.setVehicleType(req.vehicleType());
-        option.setMinGuests(req.minGuests());
-        option.setMaxGuests(req.maxGuests());
-        option.setGroupPrice(req.groupPrice());
-        option.setNote(req.note());
-
-        return tourMapper.mapTransport(transportOptionRepository.save(option));
-    }
-
-
-    @Override
-    public void deleteTransportOption(Integer tourId, Integer optId) {
-
-        Tour tour = findTourById(tourId);
-        if (!tour.getIsActive()) {
-            throw new ConflictException("Cannot delete transport option in inactive tour");
-        }
-
-        TransportOption option = transportOptionRepository
-                .findByIdAndTourId(optId, tourId)
-                .orElseThrow(() -> new ResourceNotFoundException("Transport not found"));
-
-        transportOptionRepository.delete(option);
-    }
-
-
-
-    private Tour findTourById(Integer id) {
+    private Tour getTourOrThrow(Integer id) {
         return tourRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Tour with id '" + id + "' not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Tour not found"));
+    }
+
+    private Tour getActiveTour(Integer id) {
+        return tourRepository.findById(id)
+                .map(tour -> {
+                    if (!tour.getIsActive()) {
+                        throw new ConflictException("Tour inactive");
+                    }
+                    return tour;
+                })
+                .orElseThrow(() -> new ResourceNotFoundException("Tour not found"));
+    }
+
+    private Category getCategory(Integer id) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+
+        if (!Boolean.TRUE.equals(category.getIsActive())) {
+            throw new ConflictException("Cannot create tour under inactive category");
+        }
+
+        return category;
+    }
+
+
+    private TourImageResponse mapImage(TourImage img, Integer tourId) {
+        return TourImageResponse.builder()
+                .id(img.getId())
+                .imageUrl(img.getImageUrl())
+                .sortOrder(img.getSortOrder())
+                .tourId(tourId)
+                .build();
+    }
+
+    private ItineraryResponse mapItinerary(Itinerary it) {
+        return ItineraryResponse.builder()
+                .id(it.getId())
+                .dayNumber(it.getDayNumber())
+                .title(it.getTitle())
+                .description(it.getDescription())
+                .build();
+    }
+
+    private void validateDuration(int day, int night) {
+
+        if (day <= 0 || night < 0)
+            throw new BadRequestException("Invalid duration values");
+
+        if (night > day)
+            throw new BadRequestException("Nights cannot be greater than days");
+
+
+        if (night != day && night != day - 1) {
+            throw new BadRequestException(
+                    "Invalid duration: nights must be equal to (days or days - 1)"
+            );
+        }
     }
 }

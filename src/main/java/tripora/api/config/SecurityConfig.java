@@ -109,13 +109,13 @@ public class SecurityConfig {
 
                         // ADMIN: Bookings
                         .requestMatchers(HttpMethod.GET,
-                                "/v1/api/admin/bookings",
-                                "/v1/api/admin/bookings/{id}",
-                                "/v1/api/admin/bookings/by-date"
+                                "/v1/api/bookings/admin",
+                                "/v1/api/bookings/admin/{id}",
+                                "/v1/api/bookings/admin/by-date"
                         ).hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH,
-                                "/v1/api/admin/bookings/{id}/approve",
-                                "/v1/api/admin/bookings/{id}/cancel"
+                                "/v1/api/bookings/admin/{id}/approve",
+                                "/v1/api/bookings/admin/{id}/cancel"
                         ).hasRole("ADMIN")
 
                         // ADMIN: Invoices

@@ -1,10 +1,13 @@
 package tripora.api.dto;
 
-import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
 
-public record TourImageReorderBatchRequest(
 
-        @NotEmpty
-        List<TourImageReorderRequest> items
-) {}
+public record TourImageReorderBatchRequest(
+        List<Item> items
+) {
+        public record Item(
+                Integer imageId,
+                Integer sortOrder
+        ) {}
+}

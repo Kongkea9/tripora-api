@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
@@ -50,6 +51,8 @@ public class Tour {
     @Column(length = 500, nullable = false)
     private String coverImage;
 
+
+
     @Column(nullable = false)
     private Boolean isActive;
 
@@ -72,9 +75,6 @@ public class Tour {
     @OneToMany(mappedBy = "tour", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("minGuests ASC")
     private Set<TransportOption> transportOptions = new HashSet<>();
-
-
-
 
 
 }
