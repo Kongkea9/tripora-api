@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tripora.api.Util.Validator.BookingValidator;
 import tripora.api.Util.security.SecurityUtil;
+import tripora.api.config.enums.BookingStatus;
 import tripora.api.domain.*;
 
 import tripora.api.dto.BookingRequest;

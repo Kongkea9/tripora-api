@@ -66,7 +66,6 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .toList();
     }
 
-    // ================= ADMIN: DETAIL =================
     @Override
     public InvoiceResponse getById(Integer id) {
 
