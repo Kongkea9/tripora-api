@@ -1,5 +1,6 @@
 package tripora.api.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -32,8 +33,14 @@ public class User {
     @Column(length = 255, nullable = false)
     private String passwordHash;
 
+    @Column(length = 15, unique = true)
+    private String phone;
+
     @Column(nullable = false)
-    private LocalDate createAt;
+    private LocalDate createdAt;
+
+    @Column(nullable = false)
+    private LocalDate updatedAt;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(

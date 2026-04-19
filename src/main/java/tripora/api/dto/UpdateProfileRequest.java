@@ -2,10 +2,8 @@
 
 package tripora.api.dto;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
+import tripora.api.Util.annotation.Phone;
 
 public record UpdateProfileRequest(
 
@@ -13,6 +11,10 @@ public record UpdateProfileRequest(
         @NotBlank(message = "Name is required")
         @Size(max = 255)
         String name,
+
+        @Phone
+        @NotNull(message = "Phone number is required")
+        String phone,
 
         @NotBlank(message = "Email is required")
         @Email(message = "Email format is invalid")

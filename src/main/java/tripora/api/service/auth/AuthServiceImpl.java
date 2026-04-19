@@ -38,6 +38,12 @@ public class AuthServiceImpl implements AuthService {
             throw new ConflictException("Email already registered");
         }
 
+        String phone = normalizePhone(req.phone());
+
+        if (userRepository.existsByPhone(phone)) {
+            throw new ConflictException("Phone already exists");
+        }
+
         Role userRole = roleRepository.findByName("USER")
                 .orElseGet(() -> {
                     Role newRole = new Role();
@@ -49,8 +55,11 @@ public class AuthServiceImpl implements AuthService {
         user.setName(req.name());
         user.setEmail(req.email());
         user.setPasswordHash(encoder.encode(req.password()));
+        user.setPhone(phone);
         user.setRoles(Set.of(userRole));
-        user.setCreateAt(LocalDate.now());
+        user.setCreatedAt(LocalDate.now());
+        user.setUpdatedAt(LocalDate.now());
+
 
         userRepository.save(user);
 
@@ -84,13 +93,51 @@ public class AuthServiceImpl implements AuthService {
 
         User user = getMe(email);
 
+
+        String phone = normalizePhone(req.phone());
+
+        if (userRepository.existsByPhone(phone)) {
+            throw new ConflictException("Phone already exists");
+        }
+
         if(req.name() != null)
             user.setName(req.name());
-        if(req.email() != null)
+
+        if(req.phone() != null)
+            user.setPhone(phone);
+
+        if (req.email() != null) {
+            if (userRepository.existsByEmailAndIdNot(req.email(), user.getId())) {
+                throw new ConflictException("Email already exists");
+            }
             user.setEmail(req.email());
+        }
         if(req.avatarUrl() != null)
             user.setAvatarUrl(req.avatarUrl());
 
+        user.setUpdatedAt(LocalDate.now());
+
+        if (req.phone() != null && userRepository.existsByPhone(user.getPhone())) {
+            throw new ConflictException("Phone already exists");
+        }
+
+
         return userRepository.save(user);
+    }
+
+
+
+    private String normalizePhone(String value) {
+        if (value == null) return null;
+
+        String phone = value.replaceAll("[\\s-]", "");
+
+        if (phone.startsWith("+855")) {
+            phone = phone.substring(4);
+        } else if (phone.startsWith("0")) {
+            phone = phone.substring(1);
+        }
+
+        return "+855" + phone;
     }
 }

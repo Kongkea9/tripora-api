@@ -26,20 +26,12 @@ public class AuthController {
         this.authService = authService;
     }
 
+
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
-        try {
-            log.info("Register request received for email: {}", req.email());
-            AuthResponse response = authService.register(req);
-
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (Exception e) {
-            log.error("Error during registration for email {}: {}", req.email(), e.getMessage(), e);
-            // Return generic message for security reasons
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Registration failed. Please check your input or try again later.");
-        }
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest req) {
+        log.info("Register request received for email: {}", req.email());
+        AuthResponse response = authService.register(req);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/login")
@@ -73,16 +65,13 @@ public class AuthController {
     }
 
     @PutMapping("/me")
-    public ResponseEntity<?> updateMe(Authentication auth,
-                                      @Valid @RequestBody UpdateProfileRequest req) {
-        try {
-            String email = auth.getName();
-            User updatedUser = authService.updateProfile(email, req);
-            return ResponseEntity.ok(updatedUser);
-        } catch (Exception e) {
-            log.error("Failed to update profile for user {}: {}", auth.getName(), e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Profile update failed. Please check your input.");
-        }
+    public ResponseEntity<User> updateMe(Authentication auth,
+                                         @Valid @RequestBody UpdateProfileRequest req) {
+
+        UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+        String email = principal.email();
+        log.info("Authenticated user: {}", auth.getName());
+        User updatedUser = authService.updateProfile(email, req);
+        return ResponseEntity.ok(updatedUser);
     }
 }
