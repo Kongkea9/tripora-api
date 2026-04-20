@@ -1,3 +1,33 @@
+#spring:
+#  jpa:
+#    hibernate:
+#      ddl-auto: update
+#    show-sql: true
+#    properties:
+#      hibernate:
+#        format_sql: true
+#  datasource:
+#    driver-class-name: org.postgresql.Driver
+#    username: postgres
+#    password: kea1213
+#    url: jdbc:postgresql://localhost:5432/tripora_db
+#  application:
+#    name: demo
+#server:
+#  port: 9999
+#
+#jwt:
+#  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+#
+#
+#
+#cloudinary:
+#  cloud-name: dll4ymvus
+#  api-key: 564313725918962
+#  api-secret: NiEaAAntv3RTox9wIao_0VI4Waw
+
+
+
 spring:
   jpa:
     hibernate:
@@ -8,10 +38,9 @@ spring:
         format_sql: true
   datasource:
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: kea1213
-    url: jdbc:postgresql://localhost:5432/tripora_db
-  application:
+    username: tripora_user
+    password: XX88dyh9GcLD8o6Nio8OFp4vBY1S9y2q
+    url: jdbc:postgresql://dpg-d7ipl5f7f7vs739c4rng-a.singapore-postgres.render.com:5432/tripora
     name: demo
 server:
   port: 9999

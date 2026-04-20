@@ -3,7 +3,7 @@ package tripora.api.domain;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import tripora.api.config.enums.BookingStatus;
+import tripora.api.enums.BookingStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

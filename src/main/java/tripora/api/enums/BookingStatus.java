@@ -1,4 +1,4 @@
-package tripora.api.config.enums;
+package tripora.api.enums;
 
 public enum BookingStatus {
     PENDING,

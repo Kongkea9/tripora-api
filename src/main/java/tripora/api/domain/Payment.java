@@ -3,7 +3,7 @@ package tripora.api.domain;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import tripora.api.config.enums.PaymentMethod;
+import tripora.api.enums.PaymentMethod;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

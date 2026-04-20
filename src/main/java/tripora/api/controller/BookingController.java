@@ -47,10 +47,9 @@ public class BookingController {
 
     @PatchMapping("/admin/{id}/approve")
     public BookingResponse approve(
-            @PathVariable Integer id,
-            @RequestBody ApproveBookingRequest req) {
+            @PathVariable Integer id) {
 
-        return bookingService.approve(id, req.guideId());
+        return bookingService.approve(id);
     }
 
     @PatchMapping("/admin/{id}/cancel")

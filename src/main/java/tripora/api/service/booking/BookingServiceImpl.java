@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tripora.api.Util.Validator.BookingValidator;
 import tripora.api.Util.security.SecurityUtil;
-import tripora.api.config.enums.BookingStatus;
+import tripora.api.enums.BookingStatus;
 import tripora.api.domain.*;
 
 import tripora.api.dto.BookingRequest;
@@ -137,7 +137,7 @@ public class BookingServiceImpl implements BookingService {
 
 
     @Override
-    public BookingResponse approve(Integer bookingId, Integer guideId) {
+    public BookingResponse approve(Integer bookingId) {
 
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
@@ -146,21 +146,21 @@ public class BookingServiceImpl implements BookingService {
             throw new ConflictException("Only pending bookings can be approved");
         }
 
-        Guide guide = guideRepository.findById(guideId)
-                .orElseThrow(() -> new ResourceNotFoundException("Guide not found"));
+//        Guide guide = guideRepository.findById(guideId)
+//                .orElseThrow(() -> new ResourceNotFoundException("Guide not found"));
+//
+//        if (!guide.getIsAvailable()) {
+//            throw new ConflictException("Guide is not available");
+//        }
+//
+//        boolean alreadyBooked = bookingRepository
+//                .existsByGuideIdAndTravelDate(guideId, booking.getTravelDate());
 
-        if (!guide.getIsAvailable()) {
-            throw new ConflictException("Guide is not available");
-        }
+//        if (alreadyBooked) {
+//            throw new ConflictException("Guide already assigned on this date");
+//        }
 
-        boolean alreadyBooked = bookingRepository
-                .existsByGuideIdAndTravelDate(guideId, booking.getTravelDate());
-
-        if (alreadyBooked) {
-            throw new ConflictException("Guide already assigned on this date");
-        }
-
-        booking.setGuide(guide);
+//        booking.setGuide(guide);
         booking.setStatus(BookingStatus.APPROVED);
         booking.setApprovedAt(LocalDateTime.now());
 

@@ -2,7 +2,7 @@ package tripora.api.dto;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import tripora.api.config.enums.PaymentMethod;
+import tripora.api.enums.PaymentMethod;
 
 import java.math.BigDecimal;
 

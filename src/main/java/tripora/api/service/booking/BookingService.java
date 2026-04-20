@@ -17,7 +17,7 @@ public interface BookingService {
 
     List<BookingResponse> getAll();
 
-    BookingResponse approve(Integer bookingId, Integer guideId);
+    BookingResponse approve(Integer bookingId);
 
     void adminCancel(Integer bookingId);
 }
