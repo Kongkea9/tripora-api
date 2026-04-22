@@ -13,4 +13,6 @@ public interface ItineraryRepository extends JpaRepository<Itinerary, Integer> {
 
     @Query("SELECT MAX(i.dayNumber) FROM Itinerary i WHERE i.tour.id = :tourId")
     Optional<Long> findMaxDayNumberByTourId(@Param("tourId") Integer tourId);
+
+    int countByTourId(Integer id);
 }

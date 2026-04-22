@@ -11,7 +11,14 @@ public interface TourService {
     Page<TourFlatResponse> getAll(int pageNum, int pageSize,
                               String categorySlug, String province, String city);
 
+    Page<TourFlatResponse> getAllForAdmin(int pageNum, int pageSize,
+                                  String categorySlug, String province, String city);
+
     TourResponse getById(Integer id);
+
+    TourResponse getByIdForAdmin(Integer id);
+
+    void updateIsActive(Integer id, Boolean active);
 
 
     TourResponse createTour(TourRequest req);
@@ -43,4 +50,7 @@ public interface TourService {
     void deleteTransportOption(Integer tourId, Integer optId);
 
     List<TransportOptionResponse> getTransportOptions(Integer tourId);
+
+    //Publish
+    TourResponse publishTour(Integer tourId);
 }

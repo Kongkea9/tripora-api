@@ -38,7 +38,7 @@ public record TourRequest(
         @Size(max = 500, message = "Cover image URL must not exceed 500 characters")
         String coverImage,
 
-        @NotNull(message = "isActive is required")
+
         Boolean isActive,
 
 

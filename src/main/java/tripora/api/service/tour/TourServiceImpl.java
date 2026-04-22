@@ -65,11 +65,26 @@ public class TourServiceImpl implements TourService {
     }
 
     @Override
+    public Page<TourFlatResponse> getAllForAdmin(int pageNum, int pageSize, String categorySlug, String province, String city) {
+        Pageable pageable = PageRequest.of(pageNum, pageSize);
+        return tourRepository.findAllWithFiltersForAdmin(categorySlug, province, city, pageable);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public TourResponse getById(Integer id) {
+        Tour tour = getActiveTour(id);
+        return tourMapper.mapToTourResponse(tour);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TourResponse getByIdForAdmin(Integer id) {
         Tour tour = getTourOrThrow(id);
         return tourMapper.mapToTourResponse(tour);
     }
+
+
 
     @Override
     public TourResponse createTour(TourRequest req) {
@@ -92,12 +107,29 @@ public class TourServiceImpl implements TourService {
         tour.setProvince(req.province());
         tour.setCity(req.city());
         tour.setCoverImage(req.coverImage());
-        tour.setIsActive(req.isActive());
+        tour.setIsActive(false);
         tour.setCategory(category);
         tour.setCreatedAt(LocalDate.now());
 
         return tourMapper.mapToTourResponse(tourRepository.save(tour));
     }
+
+    @Override
+    public void updateIsActive(Integer id, Boolean active) {
+
+        Tour tour = getTourOrThrow(id);
+
+        if(active) {
+            tour.setIsActive(true);
+        }
+        else {
+            tour.setIsActive(false);
+        }
+
+        tourRepository.save(tour);
+
+    }
+
 
     @Override
     public TourResponse updateTour(Integer id, UpdateTourRequest req) {
@@ -135,13 +167,15 @@ public class TourServiceImpl implements TourService {
         if (req.city() != null) tour.setCity(req.city());
         if (req.province() != null) tour.setProvince(req.province());
         if (req.coverImage() != null) tour.setCoverImage(req.coverImage());
-        if (req.isActive() != null) tour.setIsActive(req.isActive());
+//        if (req.isActive() != null) tour.setIsActive(req.isActive());
 
         if (req.categoryId() != null)
             tour.setCategory(getCategory(req.categoryId()));
 
         return tourMapper.mapToTourResponse(tourRepository.save(tour));
     }
+
+
 
     @Override
     public void deleteTour(Integer id) {
@@ -150,8 +184,9 @@ public class TourServiceImpl implements TourService {
         if (!tour.getIsActive())
             throw new ConflictException("Already inactive");
 
-        tour.setIsActive(false);
-        tourRepository.save(tour);
+
+        tourRepository.delete(tour);
+
     }
 
 
@@ -161,7 +196,7 @@ public class TourServiceImpl implements TourService {
     @Override
     public TourImageResponse addImage(Integer tourId, TourImageRequest req) {
 
-        Tour tour = getActiveTour(tourId);
+        Tour tour = getTourOrThrow(tourId);
 
         if (tourImageRepository.existsByTourIdAndSortOrder(tourId, req.sortOrder()))
             throw new ConflictException("Sort order exists");
@@ -177,7 +212,7 @@ public class TourServiceImpl implements TourService {
     @Override
     public TourImageResponse uploadImage(Integer tourId, MultipartFile file, Integer sortOrder) {
 
-        Tour tour = getActiveTour(tourId);
+        Tour tour = getTourOrThrow(tourId);
 
         if (tourImageRepository.existsByTourIdAndSortOrder(tourId, sortOrder))
             throw new ConflictException("Sort order exists");
@@ -195,7 +230,7 @@ public class TourServiceImpl implements TourService {
     @Override
     public void removeImage(Integer tourId, Integer imageId) {
 
-        getActiveTour(tourId);
+        getTourOrThrow(tourId);
 
         TourImage image = tourImageRepository.findByIdAndTourId(imageId, tourId)
                 .orElseThrow(() -> new ResourceNotFoundException("Image not found"));
@@ -207,7 +242,7 @@ public class TourServiceImpl implements TourService {
     @Override
     public void reorderImages(Integer tourId, TourImageReorderBatchRequest req) {
 
-        getActiveTour(tourId);
+        getTourOrThrow(tourId);
 
         List<TourImage> images = req.items().stream()
                 .map(item -> {
@@ -228,7 +263,7 @@ public class TourServiceImpl implements TourService {
     @Transactional
     public TourResponse updateCoverImage(Integer id, MultipartFile file) {
 
-        Tour tour = getActiveTour(id);
+        Tour tour = getTourOrThrow(id);
 
         if (file == null || file.isEmpty())
             throw new BadRequestException("File is required");
@@ -250,7 +285,7 @@ public class TourServiceImpl implements TourService {
     @Override
     public ItineraryResponse addItineraryDay(Integer tourId, ItineraryRequest req) {
 
-        Tour tour = getActiveTour(tourId);
+        Tour tour = getTourOrThrow(tourId);
 
         if (req.dayNumber() > tour.getDurationDay())
             throw new ConflictException("Day exceeds duration");
@@ -270,7 +305,7 @@ public class TourServiceImpl implements TourService {
     @Override
     public ItineraryResponse updateItineraryDay(Integer tourId, Integer dayId, UpdateItineraryRequest req) {
 
-        Tour tour = getActiveTour(tourId);
+        Tour tour = getTourOrThrow(tourId);
         if (req.dayNumber() > tour.getDurationDay())
             throw new ConflictException("Day exceeds duration");
 
@@ -295,7 +330,7 @@ public class TourServiceImpl implements TourService {
     @Override
     public void removeItineraryDay(Integer tourId, Integer dayId) {
 
-        getActiveTour(tourId);
+        getTourOrThrow(tourId);
 
         Itinerary it = itineraryRepository.findByIdAndTourId(dayId, tourId)
                 .orElseThrow(() -> new ResourceNotFoundException("Not found"));
@@ -308,7 +343,7 @@ public class TourServiceImpl implements TourService {
     @Override
     public TransportOptionResponse addTransportOption(Integer tourId, TransportOptionRequest req) {
 
-        Tour tour = getActiveTour(tourId);
+        Tour tour = getTourOrThrow(tourId);
 
         if (req.minGuests() > req.maxGuests()) {
             throw new BadRequestException("Min guests cannot be greater than max guests");
@@ -329,7 +364,7 @@ public class TourServiceImpl implements TourService {
     @Override
     public TransportOptionResponse updateTransportOption(Integer tourId, Integer optId, TransportOptionRequest req) {
 
-        getActiveTour(tourId);
+        getTourOrThrow(tourId);
 
         TransportOption opt = transportOptionRepository.findByIdAndTourId(optId, tourId)
                 .orElseThrow(() -> new ResourceNotFoundException("Not found"));
@@ -346,7 +381,7 @@ public class TourServiceImpl implements TourService {
     @Override
     public void deleteTransportOption(Integer tourId, Integer optId) {
 
-        getActiveTour(tourId);
+        getTourOrThrow(tourId);
 
         TransportOption opt = transportOptionRepository.findByIdAndTourId(optId, tourId)
                 .orElseThrow(() -> new ResourceNotFoundException("Not found"));
@@ -357,12 +392,27 @@ public class TourServiceImpl implements TourService {
     @Override
     public List<TransportOptionResponse> getTransportOptions(Integer tourId) {
 
-        getActiveTour(tourId);
+        getTourOrThrow(tourId);
 
         return transportOptionRepository.findByTourId(tourId)
                 .stream()
                 .map(tourMapper::mapTransport)
                 .toList();
+    }
+
+
+    //Publish
+    @Override
+    public TourResponse publishTour(Integer tourId) {
+
+        Tour tour = getTourOrThrow(tourId);
+
+        if (!isPublishable(tour)) {
+            throw new ConflictException("Tour is not complete (itinerary/transport/image required)");
+        }
+
+        tour.setIsActive(true);
+        return tourMapper.mapToTourResponse(tourRepository.save(tour));
     }
 
     // HELPERS
@@ -427,5 +477,12 @@ public class TourServiceImpl implements TourService {
                     "Invalid duration: nights must be equal to (days or days - 1)"
             );
         }
+    }
+
+
+    private boolean isPublishable(Tour tour) {
+        return itineraryRepository.countByTourId(tour.getId()) > 0
+                && transportOptionRepository.countByTourId(tour.getId()) > 0
+                && tour.getCoverImage() != null;
     }
 }

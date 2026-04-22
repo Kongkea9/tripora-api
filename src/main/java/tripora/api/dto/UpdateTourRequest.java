@@ -1,9 +1,6 @@
 package tripora.api.dto;
 
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 public record UpdateTourRequest(
 
@@ -15,7 +12,7 @@ public record UpdateTourRequest(
         @Positive(message = "Duration days must be a positive number")
         Integer durationDay,
 
-        @Positive(message = "Duration nights must be a positive number")
+        @PositiveOrZero(message = "Duration nights must be zero or a positive number")
         Integer durationNight,
 
         String whatsIncluded,
@@ -35,9 +32,6 @@ public record UpdateTourRequest(
         @Size(max = 500, message = "Cover image URL must not exceed 500 characters")
         String coverImage,
 
-
-        @NotNull(message = "isActive is required")
-        Boolean isActive,
 
         @NotNull(message = "Category ID is required")
         Integer categoryId

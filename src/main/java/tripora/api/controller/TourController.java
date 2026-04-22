@@ -19,7 +19,6 @@ import java.util.List;
 @RestController
 @RequestMapping("v1/api/tours")
 @Slf4j
-@CrossOrigin(origins = "http://localhost:3000")
 public class TourController {
 
     private final TourServiceImpl tourService;
@@ -46,10 +45,35 @@ public class TourController {
     }
 
 
+
+    @GetMapping("/admin")
+    public Page<TourFlatResponse> getAllForAdmin(
+            @RequestParam(required = false, defaultValue = "0") int pageNum,
+            @RequestParam(required = false, defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String categorySlug,
+            @RequestParam(required = false) String province,
+            @RequestParam(required = false) String city
+    ) {
+        log.info("GET /tours page={}, size={}, categorySlug={}, province={}, city={}",
+                pageNum, pageSize, categorySlug, province, city);
+
+
+        return tourService.getAllForAdmin(pageNum, pageSize, categorySlug, province, city);
+
+    }
+
+
+
     @GetMapping("/{id}")
     public TourResponse getById(@PathVariable Integer id) {
         log.info("Fetching tour with id: {}", id);
         return tourService.getById(id);
+    }
+
+    @GetMapping("/{id}/admin")
+    public TourResponse getByIdForAdmin(@PathVariable Integer id) {
+        log.info("Fetching tour with id: {}", id);
+        return tourService.getByIdForAdmin(id);
     }
 
 
@@ -69,6 +93,16 @@ public class TourController {
     ) {
         log.info("Updating tour with id: {}", id);
         return tourService.updateTour(id, updateTourRequest);
+    }
+
+
+    @PatchMapping("/{id}")
+    public void updateIsActive(
+            @PathVariable Integer id,
+            @RequestBody Boolean active
+    ) {
+        log.info("Updating tour active with id: {}", id);
+        tourService.updateIsActive(id, active);
     }
 
     @DeleteMapping("/{id}")
@@ -219,6 +253,14 @@ public class TourController {
     ) {
         tourService.deleteTransportOption(id, optId);
         return ResponseEntity.ok("Transport option deleted successfully");
+    }
+
+
+    @PostMapping("/{tourId}/publish")
+    public ResponseEntity<TourResponse> publishTour(@PathVariable Integer tourId) {
+
+        TourResponse response = tourService.publishTour(tourId);
+        return ResponseEntity.ok(response);
     }
 
 

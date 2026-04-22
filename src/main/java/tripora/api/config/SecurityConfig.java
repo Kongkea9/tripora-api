@@ -185,17 +185,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 package tripora.api.config;
 
 import lombok.RequiredArgsConstructor;
@@ -231,7 +220,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-                // 1. ENABLE CORS FOR ALL CONTROLLERS
+
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
@@ -273,8 +262,13 @@ public class SecurityConfig {
                         ).hasRole("ADMIN")
 
                         // Tours admin
+                        .requestMatchers(HttpMethod.GET,
+                                "/v1/api/tours/admin",
+                                "/v1/api/tours/*/admin")
+                        .hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST,
                                 "/v1/api/tours",
+                                "/v1/api/tours/*/publish",
                                 "/v1/api/tours/*/images",
                                 "/v1/api/tours/*/images/url",
                                 "/v1/api/tours/*/itineraries",
@@ -285,6 +279,9 @@ public class SecurityConfig {
                                 "/v1/api/tours/*",
                                 "/v1/api/tours/*/itineraries/*",
                                 "/v1/api/tours/*/transport-options/*"
+                        ).hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH,
+                                "/v1/api/tours/*"
                         ).hasRole("ADMIN")
 
                         .requestMatchers(HttpMethod.DELETE,
@@ -354,27 +351,23 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // 2. GLOBAL CORS POLICY - ALLOWS ALL CONTROLLERS
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Allowed Origin: Change this to "*" if you want to allow everyone,
-        // but localhost:3000 is safer for your development.
         configuration.setAllowedOrigins(List.of("http://localhost:3000"));
 
-        // Allowed Methods: Covers all controller actions
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
-        // Allowed Headers: Critical for your JwtFilter to see the 'Authorization' header
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Cache-Control"));
 
-        // Credentials: Set to true to allow passing Bearer tokens/cookies
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        // Applying this configuration to ALL paths (/**)
+
         source.registerCorsConfiguration("/**", configuration);
+
         return source;
     }
 

@@ -11,4 +11,6 @@ public interface TransportOptionRepository extends JpaRepository<TransportOption
     List<TransportOption> findByTourId(Integer tourId);
 
     Optional<TransportOption> findByIdAndTourId(Integer id, Integer tourId);
+
+    int countByTourId(Integer id);
 }

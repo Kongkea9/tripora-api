@@ -44,7 +44,7 @@ public interface TourRepository extends JpaRepository<Tour, Integer> {
     FROM Tour t
     JOIN t.category c
     WHERE t.isActive = true
-    AND (:categorySlug IS NULL OR c.slug = :categorySlug)
+    AND(:categorySlug IS NULL OR c.slug = :categorySlug)
     AND (:province IS NULL OR t.province = :province)
     AND (:city IS NULL OR t.city = :city)
     """)
@@ -55,6 +55,48 @@ public interface TourRepository extends JpaRepository<Tour, Integer> {
             String city,
             Pageable pageable
     );
+
+
+
+    @Query("""
+    SELECT new tripora.api.dto.TourFlatResponse(
+        t.id,
+        t.title,
+        t.description,
+        t.durationDay,
+        t.durationNight,
+        t.whatsIncluded,
+        t.whatExcluded,
+        t.province,
+        t.city,
+        t.coverImage,
+        t.isActive,
+        t.createdAt,
+        new tripora.api.dto.CategoryResponse(
+            c.id,
+            c.name,
+            c.slug,
+            c.type,
+            c.isActive,
+            c.createdAt,
+            c.updatedAt
+        )
+    )
+    FROM Tour t
+    JOIN t.category c
+    WHERE 
+        (:categorySlug IS NULL OR c.slug = :categorySlug)
+    AND (:province IS NULL OR t.province = :province)
+    AND (:city IS NULL OR t.city = :city)
+    """)
+
+    Page<TourFlatResponse> findAllWithFiltersForAdmin(
+            String categorySlug,
+            String province,
+            String city,
+            Pageable pageable
+    );
+
 
 
 
