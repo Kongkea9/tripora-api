@@ -234,6 +234,12 @@ public class SecurityConfig {
                                 "/v1/api/auth/login"
                         ).permitAll()
 
+
+                        .requestMatchers(HttpMethod.GET,
+                                "/v1/api/tours/admin",
+                                "/v1/api/tours/*/admin")
+                        .hasRole("ADMIN")
+
                         .requestMatchers(HttpMethod.GET,
                                 "/v1/api/tours",
                                 "/v1/api/tours/{id}",
@@ -262,10 +268,7 @@ public class SecurityConfig {
                         ).hasRole("ADMIN")
 
                         // Tours admin
-                        .requestMatchers(HttpMethod.GET,
-                                "/v1/api/tours/admin",
-                                "/v1/api/tours/*/admin")
-                        .hasRole("ADMIN")
+
                         .requestMatchers(HttpMethod.POST,
                                 "/v1/api/tours",
                                 "/v1/api/tours/*/publish",
