@@ -371,6 +371,7 @@ public TourResponse updateTour(Integer id, UpdateTourRequest req) {
     public void removeItineraryDay(Integer tourId, Integer dayId) {
 
         getTourOrThrow(tourId);
+        getUnactiveTour(tourId);
 
         Itinerary it = itineraryRepository.findByIdAndTourId(dayId, tourId)
                 .orElseThrow(() -> new ResourceNotFoundException("Not found"));
@@ -422,6 +423,7 @@ public TourResponse updateTour(Integer id, UpdateTourRequest req) {
     public void deleteTransportOption(Integer tourId, Integer optId) {
 
         getTourOrThrow(tourId);
+        getUnactiveTour(tourId);
 
         TransportOption opt = transportOptionRepository.findByIdAndTourId(optId, tourId)
                 .orElseThrow(() -> new ResourceNotFoundException("Not found"));
@@ -459,6 +461,17 @@ public TourResponse updateTour(Integer id, UpdateTourRequest req) {
 
     private Tour getTourOrThrow(Integer id) {
         return tourRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Tour not found"));
+    }
+
+    private Tour getUnactiveTour(Integer id) {
+        return tourRepository.findById(id)
+                .map(tour -> {
+                    if (tour.getIsActive()) {
+                        throw new ConflictException("Tour is active");
+                    }
+                    return tour;
+                })
                 .orElseThrow(() -> new ResourceNotFoundException("Tour not found"));
     }
 
