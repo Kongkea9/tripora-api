@@ -172,7 +172,7 @@ public class BookingServiceImpl implements BookingService {
             Invoice invoice = new Invoice();
             invoice.setBooking(savedBooking);
 
-            invoice.setInvoiceNumber("INV-" + System.currentTimeMillis()); // ✅ FIX
+            invoice.setInvoiceNumber("INV-" + System.currentTimeMillis());
 
             BigDecimal subtotal = savedBooking.getTotalPrice();
             BigDecimal tax = subtotal.multiply(BigDecimal.valueOf(0.10));

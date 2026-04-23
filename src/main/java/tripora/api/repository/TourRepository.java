@@ -121,4 +121,13 @@ public interface TourRepository extends JpaRepository<Tour, Integer> {
             @Param("title") String title,
             @Param("city") String city
     );
+
+    @Query("""
+    SELECT CASE WHEN COUNT(t) > 0 THEN true ELSE false END
+    FROM Tour t
+    WHERE t.title = :title
+    AND t.city = :city
+    AND t.id <> :id
+    """)
+    boolean existsDuplicateExcludingSelf(String title, String city, Integer id);
 }

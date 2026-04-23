@@ -2,6 +2,7 @@
 
 package tripora.api.service.tour;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +24,7 @@ import java.util.List;
 
 @Service
 @Transactional
+@Slf4j
 public class TourServiceImpl implements TourService {
 
     private final TourRepository tourRepository;
@@ -131,60 +133,98 @@ public class TourServiceImpl implements TourService {
     }
 
 
-    @Override
-    public TourResponse updateTour(Integer id, UpdateTourRequest req) {
+//    @Override
+//    public TourResponse updateTour(Integer id, UpdateTourRequest req) {
+//
+//        Tour tour = getTourOrThrow(id);
+//        if (tourRepository.existsDuplicateTitle(req.title(), req.city())) {
+//            throw new ConflictException("Duplicate tour title in city");
+//        }
+//
+//        if (!tour.getIsActive())
+//            throw new ConflictException("Tour inactive");
+//
+//        if (req.title() != null)
+//            tour.setTitle(req.title().trim());
+//
+//        if (req.description() != null)
+//            tour.setDescription(req.description());
+//
+//        if (req.durationDay() != null || req.durationNight() != null) {
+//
+//            int day = req.durationDay() != null ? req.durationDay() : tour.getDurationDay();
+//            int night = req.durationNight() != null ? req.durationNight() : tour.getDurationNight();
+//
+//            validateDuration(day, night);
+//
+//            long maxDay = itineraryRepository.findMaxDayNumberByTourId(id).orElse(0L);
+//
+//            if (day < maxDay)
+//                throw new ConflictException("Duration too small for itinerary");
+//
+//            tour.setDurationDay(day);
+//            tour.setDurationNight(night);
+//        }
+//
+//        if (req.city() != null) tour.setCity(req.city());
+//        if (req.province() != null) tour.setProvince(req.province());
+//        if (req.coverImage() != null) tour.setCoverImage(req.coverImage());
+////        if (req.isActive() != null) tour.setIsActive(req.isActive());
+//
+//        if (req.categoryId() != null)
+//            tour.setCategory(getCategory(req.categoryId()));
+//
+//        return tourMapper.mapToTourResponse(tourRepository.save(tour));
+//    }
+//
+//
 
-        Tour tour = getTourOrThrow(id);
-        if (tourRepository.existsDuplicateTitle(req.title(), req.city())) {
-            throw new ConflictException("Duplicate tour title in city");
-        }
 
-        if (!tour.getIsActive())
-            throw new ConflictException("Tour inactive");
+@Override
+public TourResponse updateTour(Integer id, UpdateTourRequest req) {
 
-        if (req.title() != null)
-            tour.setTitle(req.title().trim());
+    Tour tour = getTourOrThrow(id);
 
-        if (req.description() != null)
-            tour.setDescription(req.description());
+    String title = req.title() != null ? req.title().trim() : tour.getTitle();
+    String city = req.city() != null ? req.city() : tour.getCity();
+    String description = req.description() != null ? req.description() : tour.getDescription();
+    String province = req.province() != null ? req.province() : tour.getProvince();
+    String coverImage = req.coverImage() != null ? req.coverImage() : tour.getCoverImage();
+    Integer categoryId = req.categoryId();
 
-        if (req.durationDay() != null || req.durationNight() != null) {
+    Integer day = req.durationDay() != null ? req.durationDay() : tour.getDurationDay();
+    Integer night = req.durationNight() != null ? req.durationNight() : tour.getDurationNight();
 
-            int day = req.durationDay() != null ? req.durationDay() : tour.getDurationDay();
-            int night = req.durationNight() != null ? req.durationNight() : tour.getDurationNight();
 
-            validateDuration(day, night);
-
-            long maxDay = itineraryRepository.findMaxDayNumberByTourId(id).orElse(0L);
-
-            if (day < maxDay)
-                throw new ConflictException("Duration too small for itinerary");
-
-            tour.setDurationDay(day);
-            tour.setDurationNight(night);
-        }
-
-        if (req.city() != null) tour.setCity(req.city());
-        if (req.province() != null) tour.setProvince(req.province());
-        if (req.coverImage() != null) tour.setCoverImage(req.coverImage());
-//        if (req.isActive() != null) tour.setIsActive(req.isActive());
-
-        if (req.categoryId() != null)
-            tour.setCategory(getCategory(req.categoryId()));
-
-        return tourMapper.mapToTourResponse(tourRepository.save(tour));
+    if (tourRepository.existsDuplicateExcludingSelf(title, city, id)) {
+        throw new ConflictException("Duplicate tour title in city");
     }
 
+    validateDuration(day, night);
 
+    long maxDay = itineraryRepository.findMaxDayNumberByTourId(id).orElse(0L);
+    if (day < maxDay) {
+        throw new ConflictException("Duration too small for itinerary");
+    }
+
+    tour.setTitle(title);
+    tour.setCity(city);
+    tour.setDescription(description);
+    tour.setProvince(province);
+    tour.setCoverImage(coverImage);
+    tour.setDurationDay(day);
+    tour.setDurationNight(night);
+
+    if (categoryId != null) {
+        tour.setCategory(getCategory(categoryId));
+    }
+
+    return tourMapper.mapToTourResponse(tourRepository.save(tour));
+}
 
     @Override
     public void deleteTour(Integer id) {
         Tour tour = getTourOrThrow(id);
-
-        if (!tour.getIsActive())
-            throw new ConflictException("Already inactive");
-
-
         tourRepository.delete(tour);
 
     }

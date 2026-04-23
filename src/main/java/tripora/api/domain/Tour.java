@@ -52,7 +52,6 @@ public class Tour {
     private String coverImage;
 
 
-
     @Column(nullable = false)
     private Boolean isActive;
 
@@ -72,7 +71,7 @@ public class Tour {
      @OrderBy("dayNumber ASC")
      private Set<Itinerary> itineraries = new HashSet<>();
 
-    @OneToMany(mappedBy = "tour", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "tour", cascade = CascadeType.ALL , orphanRemoval = true)
     @OrderBy("minGuests ASC")
     private Set<TransportOption> transportOptions = new HashSet<>();
 
