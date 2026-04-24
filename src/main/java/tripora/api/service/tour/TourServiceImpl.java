@@ -57,7 +57,7 @@ public class TourServiceImpl implements TourService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<TourFlatResponse> getAll(int pageNum, int pageSize,
+    public Page <TourFlatResponse> getAll(int pageNum, int pageSize,
                                          String categorySlug,
                                          String province,
                                          String city) {
