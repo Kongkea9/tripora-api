@@ -1,6 +1,7 @@
 package tripora.api.service.booking;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tripora.api.Util.Validator.BookingValidator;
@@ -124,17 +125,16 @@ public class BookingServiceImpl implements BookingService {
         bookingRepository.save(booking);
     }
 
-    // ADMIN
+
+
     @Override
     public List<BookingResponse> getAll() {
-        return bookingRepository.findAll()
+        return bookingRepository
+                .findAll(Sort.by(Sort.Direction.DESC, "bookedAt"))
                 .stream()
                 .map(bookingMapper::toResponse)
                 .toList();
     }
-
-
-
 
     @Override
     public BookingResponse approve(Integer bookingId) {

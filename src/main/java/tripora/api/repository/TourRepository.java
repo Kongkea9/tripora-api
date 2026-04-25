@@ -47,8 +47,9 @@ FROM Tour t
 JOIN t.category c
 WHERE t.isActive = true
 AND (:categorySlug IS NULL OR c.slug = :categorySlug)
-    AND (:province IS NULL OR t.province = :province)
-    AND (:city IS NULL OR t.city = :city)
+AND (:province IS NULL OR t.province = :province)
+AND (:city IS NULL OR t.city = :city)
+ORDER BY t.createdAt DESC
 """)
     Page<TourFlatResponse> findAllWithFilters(
             String categorySlug,
@@ -91,6 +92,7 @@ AND (:categorySlug IS NULL OR c.slug = :categorySlug)
         (:categorySlug IS NULL OR c.slug = :categorySlug)
     AND (:province IS NULL OR t.province = :province)
     AND (:city IS NULL OR t.city = :city)
+    ORDER BY t.createdAt DESC
     """)
 
     Page<TourFlatResponse> findAllWithFiltersForAdmin(
